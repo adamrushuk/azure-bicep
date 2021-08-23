@@ -3,9 +3,14 @@
 // This line of code tells Bicep that your template is going to be deployed at a subscription scope.
 targetScope = 'subscription'
 
+// params
+param virtualNetworkName string
+param virtualNetworkAddressPrefix string
+
 // vars
 var policyDefinitionName = 'DenyFandGSeriesVMs'
 var policyAssignmentName = 'DenyFandGSeriesVMs'
+var resourceGroupName = 'ToyNetworking'
 
 // resources
 resource policyDefinition 'Microsoft.Authorization/policyDefinitions@2020-03-01' = {
@@ -46,5 +51,19 @@ resource policyAssignment 'Microsoft.Authorization/policyAssignments@2020-03-01'
   name: policyAssignmentName
   properties: {
     policyDefinitionId: policyDefinition.id
+  }
+}
+
+resource resourceGroup 'Microsoft.Resources/resourceGroups@2021-01-01' = {
+  name: resourceGroupName
+  location: deployment().location
+}
+
+module virtualNetwork 'modules/virtualNetwork.bicep' = {
+  scope: resourceGroup
+  name: 'virtualNetwork'
+  params: {
+    virtualNetworkName: virtualNetworkName
+    virtualNetworkAddressPrefix: virtualNetworkAddressPrefix
   }
 }
