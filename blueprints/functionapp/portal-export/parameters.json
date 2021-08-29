@@ -1,0 +1,48 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "subscriptionId": {
+            "value": "2569a91a-7470-41af-bc1f-6481effc4db4"
+        },
+        "name": {
+            "value": "funcapptestar"
+        },
+        "location": {
+            "value": "UK South"
+        },
+        "hostingPlanName": {
+            "value": "ASP-funcapptestrg-8a5d"
+        },
+        "serverFarmResourceGroup": {
+            "value": "funcapptest-rg"
+        },
+        "alwaysOn": {
+            "value": false
+        },
+        "storageAccountName": {
+            "value": "storageaccountfunca82a1"
+        },
+        "use32BitWorkerProcess": {
+            "value": true
+        },
+        "powerShellVersion": {
+            "value": "~7"
+        },
+        "sku": {
+            "value": "Dynamic"
+        },
+        "skuCode": {
+            "value": "Y1"
+        },
+        "workerSize": {
+            "value": "0"
+        },
+        "workerSizeId": {
+            "value": "0"
+        },
+        "numberOfWorkers": {
+            "value": "1"
+        }
+    }
+}
