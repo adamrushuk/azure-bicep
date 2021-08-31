@@ -10,6 +10,8 @@ cd blueprints/function-app-dedicated-github-deploy
 REGION="uksouth"
 RESOURCE_GROUP_NAME="funcapp-dedicate-github-rg"
 DEPLOYMENT_NAME="funcapp-dedicated"
+# TEMPLATE_FILENAME="azuredeploy.json"
+TEMPLATE_FILENAME="powershell-funcapp-azuredeploy.json"
 
 # login
 az login
@@ -18,7 +20,7 @@ az login
 az group create --name "$RESOURCE_GROUP_NAME" --location "$REGION"
 
 # deploy function app into resource group
-az deployment group create --resource-group "$RESOURCE_GROUP_NAME" --name "$DEPLOYMENT_NAME" --template-file azuredeploy.json
+az deployment group create --resource-group "$RESOURCE_GROUP_NAME" --name "$DEPLOYMENT_NAME" --template-file $TEMPLATE_FILENAME --confirm-with-what-if
 
 
 # CLEANUP
@@ -47,8 +49,7 @@ DEPLOYMENT_NAME="mg-funcapp-dedicated"
 az login
 
 # deploy function app into resource group
-az deployment mg create --management-group-id "$MANAGEMENT_GROUP_NAME" --name "$DEPLOYMENT_NAME" --location "$REGION" --template-file azuredeploy.json
-
+az deployment mg create --management-group-id "$MANAGEMENT_GROUP_NAME" --name "$DEPLOYMENT_NAME" --location "$REGION" --template-file $TEMPLATE_FILENAME
 
 # CLEANUP
 # this does NOT remove resources; just the deployment history
