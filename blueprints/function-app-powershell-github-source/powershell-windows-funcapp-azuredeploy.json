@@ -70,6 +70,10 @@
             "kind": "Storage",
             "sku": {
                 "name": "[parameters('storageAccountType')]"
+            },
+            "properties": {
+                "supportsHttpsTrafficOnly": true,
+                "minimumTlsVersion": "TLS1_2"
             }
         },
         {

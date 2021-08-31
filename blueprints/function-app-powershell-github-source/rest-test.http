@@ -1,0 +1,11 @@
+GET https://funtionapp-3mbabtfgjmbfw.azurewebsites.net/api/HttpTrigger1?name=adam
+
+###
+
+POST https://funtionapp-3mbabtfgjmbfw.azurewebsites.net/api/HttpTrigger1
+content-type: application/json
+
+{
+    "name": "tasha",
+    "time": "Wed, 21 Oct 2015 18:27:50 GMT"
+}
