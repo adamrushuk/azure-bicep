@@ -1,8 +1,8 @@
-GET https://funtionapp-3mbabtfgjmbfw.azurewebsites.net/api/HttpTrigger1?name=adam
+GET https://funtionapp-wwx3deqjctkpi.azurewebsites.net/api/HttpTrigger1?name=adam
 
 ###
 
-POST https://funtionapp-3mbabtfgjmbfw.azurewebsites.net/api/HttpTrigger1
+POST https://funtionapp-wwx3deqjctkpi.azurewebsites.net/api/HttpTrigger1
 content-type: application/json
 
 {
