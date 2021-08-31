@@ -11,7 +11,7 @@ REGION="uksouth"
 RESOURCE_GROUP_NAME="funcapp-dedicate-github-rg"
 DEPLOYMENT_NAME="funcapp-dedicated"
 # TEMPLATE_FILENAME="azuredeploy.json"
-TEMPLATE_FILENAME="powershell-funcapp-azuredeploy.json"
+TEMPLATE_FILENAME="powershell-windows-funcapp-azuredeploy.json"
 
 # login
 az login
