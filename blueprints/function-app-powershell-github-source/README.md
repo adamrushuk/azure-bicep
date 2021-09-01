@@ -50,6 +50,8 @@ az group create --name "$RESOURCE_GROUP_NAME" --location "$REGION"
 # deploy function app into resource group
 az deployment group create --resource-group "$RESOURCE_GROUP_NAME" --name "$DEPLOYMENT_NAME" --template-file $BICEP_TEMPLATE_FILENAME --confirm-with-what-if
 
+# show outputs
+az deployment group show -g "$RESOURCE_GROUP_NAME" -n "$DEPLOYMENT_NAME" -o tsv --query properties.outputs.functionAppUrl.value
 
 # CLEANUP
 az group delete --name "$RESOURCE_GROUP_NAME"

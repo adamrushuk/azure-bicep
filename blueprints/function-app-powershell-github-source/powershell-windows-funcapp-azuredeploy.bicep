@@ -71,11 +71,11 @@ resource functionAppName 'Microsoft.Web/sites@2020-12-01' = {
     serverFarmId: hostingPlanName.id
     clientAffinityEnabled: false
     siteConfig: {
-      cors: {
-        allowedOrigins: [
-          '*'
-        ]
-      }
+      // cors: {
+      //   allowedOrigins: [
+      //     '*'
+      //   ]
+      // }
       appSettings: [
         {
           name: 'FUNCTIONS_EXTENSION_VERSION'
@@ -109,3 +109,7 @@ resource functionAppName_web 'Microsoft.Web/sites/sourcecontrols@2020-12-01' = {
     isManualIntegration: true
   }
 }
+
+
+// Outputs
+output functionAppUrl string = functionAppName.properties.defaultHostName
