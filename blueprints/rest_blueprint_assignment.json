@@ -1,0 +1,13 @@
+{
+  "identity": {
+    "type": "SystemAssigned"
+  },
+  "location": "uksouth",
+  "properties": {
+    "description": "enforce pre-defined Blueprint",
+    "blueprintId": "/providers/Microsoft.Management/managementGroups/parent-mg/providers/Microsoft.Blueprint/blueprints/function-app-powershell-gh/versions/1.0.0",
+    "scope": "subscriptions/00000000-0000-0000-0000-000000000000",
+    "parameters": {},
+    "resourceGroups": {}
+  }
+}

@@ -55,6 +55,9 @@ az deployment group show -g "$RESOURCE_GROUP_NAME" -n "$DEPLOYMENT_NAME" -o tsv 
 
 # CLEANUP
 az group delete --name "$RESOURCE_GROUP_NAME"
+
+# [OPTIONAL] convert Bicep to ARM config
+az bicep build --file $BICEP_TEMPLATE_FILENAME
 ```
 
 ## WIP - Management Group Scope Deployment
