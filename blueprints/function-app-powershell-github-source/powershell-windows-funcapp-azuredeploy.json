@@ -117,6 +117,18 @@
             {
               "name": "AzureWebJobsDashboard",
               "value": "[concat('DefaultEndpointsProtocol=https;AccountName=',variables('storageAccountName'),';AccountKey=',listkeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2021-04-01').keys[0].value,';')]"
+            },
+            {
+              "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=',variables('storageAccountName'),';AccountKey=',listkeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2021-04-01').keys[0].value,';')]"
+            },
+            {
+              "name": "INBOUND_NSG_RULE_NAME",
+              "value": "inbound-test-rule"
+            },
+            {
+              "name": "OUTBOUND_NSG_RULE_NAME",
+              "value": "outbound-test-rule"
             }
           ],
           "powerShellVersion": "~7"
