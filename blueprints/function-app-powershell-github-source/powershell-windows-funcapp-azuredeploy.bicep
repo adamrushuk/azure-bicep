@@ -22,16 +22,14 @@ param branch string = 'main'
 @description('Location for all resources.')
 param location string = resourceGroup().location
 
-
 // Variables
 var functionAppName_var = appName
 var hostingPlanName_var = '${appName}-plan'
 var storageAccountName_var = '${uniqueString(resourceGroup().id)}functions'
 
-
 // Resources
 // https://docs.microsoft.com/en-us/azure/templates/microsoft.storage/storageaccounts?tabs=bicep
-resource storageAccountName 'Microsoft.Storage/storageAccounts@2021-04-01' = {
+resource storageAccount 'Microsoft.Storage/storageAccounts@2021-04-01' = {
   name: storageAccountName_var
   location: location
   kind: 'Storage'
@@ -45,7 +43,7 @@ resource storageAccountName 'Microsoft.Storage/storageAccounts@2021-04-01' = {
 }
 
 // https://docs.microsoft.com/en-us/azure/templates/microsoft.web/serverfarms?tabs=bicep
-resource hostingPlanName 'Microsoft.Web/serverfarms@2020-12-01' = {
+resource hostingPlan 'Microsoft.Web/serverfarms@2020-12-01' = {
   name: hostingPlanName_var
   location: location
   sku: {
@@ -62,13 +60,16 @@ resource hostingPlanName 'Microsoft.Web/serverfarms@2020-12-01' = {
 }
 
 // https://docs.microsoft.com/en-us/azure/templates/microsoft.web/sites?tabs=bicep
-resource functionAppName 'Microsoft.Web/sites@2020-12-01' = {
+resource functionApp 'Microsoft.Web/sites@2020-12-01' = {
   name: functionAppName_var
   location: location
   kind: 'functionapp'
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
     // name: functionAppName_var
-    serverFarmId: hostingPlanName.id
+    serverFarmId: hostingPlan.id
     clientAffinityEnabled: false
     siteConfig: {
       // cors: {
@@ -87,11 +88,23 @@ resource functionAppName 'Microsoft.Web/sites@2020-12-01' = {
         }
         {
           name: 'AzureWebJobsStorage'
-          value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccountName_var};AccountKey=${listkeys(storageAccountName.id, '2021-04-01').keys[0].value};'
+          value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccountName_var};AccountKey=${listkeys(storageAccount.id, '2021-04-01').keys[0].value};'
         }
         {
           name: 'AzureWebJobsDashboard'
-          value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccountName_var};AccountKey=${listkeys(storageAccountName.id, '2021-04-01').keys[0].value};'
+          value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccountName_var};AccountKey=${listkeys(storageAccount.id, '2021-04-01').keys[0].value};'
+        }
+        {
+          name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING'
+          value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccountName_var};AccountKey=${listkeys(storageAccount.id, '2021-04-01').keys[0].value};'
+        }
+        {
+          name: 'INBOUND_NSG_RULE_NAME'
+          value: 'inbound-test-rule'
+        }
+        {
+          name: 'OUTBOUND_NSG_RULE_NAME'
+          value: 'outbound-test-rule'
         }
       ]
       powerShellVersion: '~7'
@@ -101,7 +114,7 @@ resource functionAppName 'Microsoft.Web/sites@2020-12-01' = {
 
 // https://docs.microsoft.com/en-us/azure/templates/microsoft.web/sites/sourcecontrols?tabs=bicep
 resource functionAppName_web 'Microsoft.Web/sites/sourcecontrols@2020-12-01' = {
-  parent: functionAppName
+  parent: functionApp
   name: 'web'
   properties: {
     repoUrl: repoURL
@@ -110,6 +123,5 @@ resource functionAppName_web 'Microsoft.Web/sites/sourcecontrols@2020-12-01' = {
   }
 }
 
-
 // Outputs
-output functionAppUrl string = functionAppName.properties.defaultHostName
+output functionAppUrl string = functionApp.properties.defaultHostName
