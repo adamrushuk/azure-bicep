@@ -115,6 +115,16 @@ resource functionApp 'Microsoft.Web/sites@2020-12-01' = {
   }
 }
 
+resource roleAssignment 'Microsoft.Authorization/roleAssignments@2020-08-01-preview' = {
+  name: guid(functionApp.name, subscription().subscriptionId)
+  scope: subscription().subscriptionId
+  properties: {
+    principalId: functionApp.identity.principalId
+    // contributor RBAC role
+    roleDefinitionId: '/providers/microsoft.authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c'
+  }
+}
+
 // https://docs.microsoft.com/en-us/azure/templates/microsoft.web/sites/sourcecontrols?tabs=bicep
 resource functionAppSourcecontrol 'Microsoft.Web/sites/sourcecontrols@2020-12-01' = {
   parent: functionApp
@@ -134,6 +144,45 @@ resource systemTopic 'Microsoft.EventGrid/systemTopics@2020-04-01-preview' = {
   properties: {
     source: subscription().id
     topicType: 'Microsoft.Resources.Subscriptions'
+  }
+}
+
+// https://docs.microsoft.com/en-gb/azure/templates/microsoft.eventgrid/systemtopics/eventsubscriptions?tabs=bicep
+
+resource systemTopicEventSubscription 'Microsoft.EventGrid/systemTopics/eventSubscriptions@2021-06-01-preview' = {
+  parent: systemTopic
+  name: 'my-event-subscription'
+  properties: {
+    destination: {
+      properties: {
+        resourceId: '${resourceId('Microsoft.Web/sites', appName)}/functions/EventGridTrigger1'
+        maxEventsPerBatch: 1
+        preferredBatchSizeInKilobytes: 64
+      }
+      endpointType: 'AzureFunction'
+    }
+    filter: {
+      includedEventTypes: [
+        'Microsoft.Resources.ResourceWriteSuccess'
+        'Microsoft.Resources.ResourceDeleteSuccess'
+      ]
+      enableAdvancedFilteringOnArrays: true
+      advancedFilters: [
+        {
+          values: [
+            'Microsoft.Network/networkSecurityGroups/'
+          ]
+          operatorType: 'StringContains'
+          key: 'data.operationName'
+        }
+      ]
+    }
+    labels: []
+    eventDeliverySchema: 'EventGridSchema'
+    retryPolicy: {
+      maxDeliveryAttempts: 30
+      eventTimeToLiveInMinutes: 1440
+    }
   }
 }
 
