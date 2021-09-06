@@ -1,5 +1,8 @@
 // Event Grid Function App
 
+// Scope
+targetScope = 'resourceGroup'
+
 // Params
 @description('The name of the function app that you wish to create.')
 param appName string = 'eg-funcapp-${uniqueString(resourceGroup().id)}'
@@ -25,10 +28,18 @@ param branch string = 'main'
 @description('Location for all resources.')
 param location string = resourceGroup().location
 
-// Variables
+// Variables (like locals{} in Terraform)
 var functionAppName_var = appName
+var applicationInsightsName_var = appName
 var hostingPlanName_var = '${appName}-plan'
 var storageAccountName_var = '${uniqueString(resourceGroup().id)}functions'
+
+// Existing Resources (like Data Resources in Terraform)
+
+// resource vnetResourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' existing = {
+//   name: vnetResourceGroupName
+//   scope: subscription().subscriptionId
+// }
 
 // Resources
 // https://docs.microsoft.com/en-us/azure/templates/microsoft.storage/storageaccounts?tabs=bicep
@@ -56,10 +67,22 @@ resource hostingPlan 'Microsoft.Web/serverfarms@2020-12-01' = {
     family: 'Y'
     capacity: 0
   }
-  // properties: {
-  //   name: hostingPlanName_var
-  //   computeMode: 'Dynamic'
-  // }
+}
+
+// https://docs.microsoft.com/en-gb/azure/templates/microsoft.insights/components?tabs=bicep
+resource functionAppInsights 'Microsoft.Insights/components@2020-02-02-preview' = {
+  name: applicationInsightsName_var
+  location: location
+  kind: 'web'
+  properties: {
+    Application_Type: 'web'
+    publicNetworkAccessForIngestion: 'Enabled'
+    publicNetworkAccessForQuery: 'Enabled'
+  }
+  tags: {
+    // circular dependency means we can't reference functionApp directly "/subscriptions/<subscriptionId>/resourceGroups/<rg-name>/providers/Microsoft.Web/sites/<appName>"
+    'hidden-link:/subscriptions/${subscription().id}/resourceGroups/${resourceGroup().name}/providers/Microsoft.Web/sites/${functionAppName_var}': 'Resource'
+  }
 }
 
 // https://docs.microsoft.com/en-us/azure/templates/microsoft.web/sites?tabs=bicep
@@ -71,16 +94,16 @@ resource functionApp 'Microsoft.Web/sites@2020-12-01' = {
     type: 'SystemAssigned'
   }
   properties: {
-    // name: functionAppName_var
     serverFarmId: hostingPlan.id
     clientAffinityEnabled: false
+    httpsOnly: true
     siteConfig: {
-      // cors: {
-      //   allowedOrigins: [
-      //     '*'
-      //   ]
-      // }
+      powerShellVersion: '~7'
       appSettings: [
+        {
+          'name': 'APPINSIGHTS_INSTRUMENTATIONKEY'
+          'value': functionAppInsights.properties.InstrumentationKey
+        }
         {
           name: 'FUNCTIONS_EXTENSION_VERSION'
           value: '~3'
@@ -101,6 +124,7 @@ resource functionApp 'Microsoft.Web/sites@2020-12-01' = {
           name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING'
           value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccountName_var};AccountKey=${listkeys(storageAccount.id, '2021-04-01').keys[0].value};'
         }
+        // WEBSITE_CONTENTSHARE will be auto-generated - https://docs.microsoft.com/en-us/azure/azure-functions/functions-app-settings#website_contentshare
         {
           name: 'INBOUND_NSG_RULE_NAME'
           value: 'inbound-test-rule'
@@ -110,20 +134,20 @@ resource functionApp 'Microsoft.Web/sites@2020-12-01' = {
           value: 'outbound-test-rule'
         }
       ]
-      powerShellVersion: '~7'
     }
   }
 }
 
-resource roleAssignment 'Microsoft.Authorization/roleAssignments@2020-08-01-preview' = {
-  name: guid(functionApp.name, subscription().subscriptionId)
-  scope: subscription().subscriptionId
-  properties: {
-    principalId: functionApp.identity.principalId
-    // contributor RBAC role
-    roleDefinitionId: '/providers/microsoft.authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c'
-  }
-}
+// TODO: Can we deploy to subscription scope so role assignments work here?
+// resource roleAssignment 'Microsoft.Authorization/roleAssignments@2020-08-01-preview' = {
+//   name: guid(functionApp.name, subscription().subscriptionId)
+//   scope: subscription()
+//   properties: {
+//     principalId: functionApp.identity.principalId
+//     // contributor RBAC role
+//     roleDefinitionId: '/providers/microsoft.authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c'
+//   }
+// }
 
 // https://docs.microsoft.com/en-us/azure/templates/microsoft.web/sites/sourcecontrols?tabs=bicep
 resource functionAppSourcecontrol 'Microsoft.Web/sites/sourcecontrols@2020-12-01' = {
@@ -148,7 +172,6 @@ resource systemTopic 'Microsoft.EventGrid/systemTopics@2020-04-01-preview' = {
 }
 
 // https://docs.microsoft.com/en-gb/azure/templates/microsoft.eventgrid/systemtopics/eventsubscriptions?tabs=bicep
-
 resource systemTopicEventSubscription 'Microsoft.EventGrid/systemTopics/eventSubscriptions@2021-06-01-preview' = {
   parent: systemTopic
   name: 'my-event-subscription'
@@ -188,3 +211,4 @@ resource systemTopicEventSubscription 'Microsoft.EventGrid/systemTopics/eventSub
 
 // Outputs
 output functionAppUrl string = functionApp.properties.defaultHostName
+output functionAppPrincipalId string = functionApp.identity.principalId
