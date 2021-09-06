@@ -207,6 +207,9 @@ resource systemTopicEventSubscription 'Microsoft.EventGrid/systemTopics/eventSub
       eventTimeToLiveInMinutes: 1440
     }
   }
+  dependsOn: [
+    functionAppSourcecontrol
+  ]
 }
 
 // Outputs
