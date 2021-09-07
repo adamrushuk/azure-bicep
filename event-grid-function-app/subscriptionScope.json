@@ -1,0 +1,307 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.4.613.9944",
+      "templateHash": "8654341829572984919"
+    }
+  },
+  "parameters": {
+    "rgName": {
+      "type": "string",
+      "defaultValue": "rg-event-grid-funcapp",
+      "metadata": {
+        "description": "The name of the Resource Group that you wish to create."
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "uksouth",
+      "metadata": {
+        "description": "Location for all resources."
+      }
+    }
+  },
+  "functions": [],
+  "resources": [
+    {
+      "type": "Microsoft.Resources/resourceGroups",
+      "apiVersion": "2021-04-01",
+      "name": "[parameters('rgName')]",
+      "location": "[parameters('location')]"
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2021-04-01-preview",
+      "name": "[guid('funcApp', subscription().subscriptionId)]",
+      "properties": {
+        "principalId": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', 'funcApp'), '2019-10-01').outputs.functionAppPrincipalId.value]",
+        "roleDefinitionId": "/providers/microsoft.authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c"
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', 'funcApp')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2019-10-01",
+      "name": "funcApp",
+      "resourceGroup": "[parameters('rgName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.4.613.9944",
+              "templateHash": "4928344370751008232"
+            }
+          },
+          "parameters": {
+            "appName": {
+              "type": "string",
+              "defaultValue": "[format('eg-funcapp-{0}', uniqueString(resourceGroup().id))]",
+              "metadata": {
+                "description": "The name of the function app that you wish to create."
+              }
+            },
+            "systemTopicName": {
+              "type": "string",
+              "defaultValue": "mySystemTopic",
+              "metadata": {
+                "description": "The name of the Event Grid System Topic that you wish to create."
+              }
+            },
+            "storageAccountType": {
+              "type": "string",
+              "defaultValue": "Standard_LRS",
+              "allowedValues": [
+                "Standard_LRS",
+                "Standard_GRS",
+                "Standard_ZRS",
+                "Premium_LRS"
+              ],
+              "metadata": {
+                "description": "Storage Account type"
+              }
+            },
+            "repoURL": {
+              "type": "string",
+              "defaultValue": "https://github.com/adamrushuk/azure-function-app",
+              "metadata": {
+                "description": "The URL for the GitHub repository that contains the project to deploy."
+              }
+            },
+            "branch": {
+              "type": "string",
+              "defaultValue": "main",
+              "metadata": {
+                "description": "The branch of the GitHub repository to use."
+              }
+            },
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]",
+              "metadata": {
+                "description": "Location for all resources."
+              }
+            }
+          },
+          "functions": [],
+          "variables": {
+            "functionAppName_var": "[parameters('appName')]",
+            "applicationInsightsName_var": "[parameters('appName')]",
+            "hostingPlanName_var": "[format('{0}-plan', parameters('appName'))]",
+            "storageAccountName_var": "[format('{0}functions', uniqueString(resourceGroup().id))]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Storage/storageAccounts",
+              "apiVersion": "2021-04-01",
+              "name": "[variables('storageAccountName_var')]",
+              "location": "[parameters('location')]",
+              "kind": "Storage",
+              "sku": {
+                "name": "[parameters('storageAccountType')]"
+              },
+              "properties": {
+                "supportsHttpsTrafficOnly": true,
+                "minimumTlsVersion": "TLS1_2"
+              }
+            },
+            {
+              "type": "Microsoft.Web/serverfarms",
+              "apiVersion": "2020-12-01",
+              "name": "[variables('hostingPlanName_var')]",
+              "location": "[parameters('location')]",
+              "sku": {
+                "name": "Y1",
+                "tier": "Dynamic",
+                "size": "Y1",
+                "family": "Y",
+                "capacity": 0
+              }
+            },
+            {
+              "type": "Microsoft.Insights/components",
+              "apiVersion": "2020-02-02-preview",
+              "name": "[variables('applicationInsightsName_var')]",
+              "location": "[parameters('location')]",
+              "kind": "web",
+              "properties": {
+                "Application_Type": "web",
+                "publicNetworkAccessForIngestion": "Enabled",
+                "publicNetworkAccessForQuery": "Enabled"
+              },
+              "tags": {
+                "[format('hidden-link:/subscriptions/{0}/resourceGroups/{1}/providers/Microsoft.Web/sites/{2}', subscription().id, resourceGroup().name, variables('functionAppName_var'))]": "Resource"
+              }
+            },
+            {
+              "type": "Microsoft.Web/sites",
+              "apiVersion": "2020-12-01",
+              "name": "[variables('functionAppName_var')]",
+              "location": "[parameters('location')]",
+              "kind": "functionapp",
+              "identity": {
+                "type": "SystemAssigned"
+              },
+              "properties": {
+                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanName_var'))]",
+                "clientAffinityEnabled": false,
+                "httpsOnly": true,
+                "siteConfig": {
+                  "powerShellVersion": "~7",
+                  "appSettings": [
+                    {
+                      "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+                      "value": "[reference(resourceId('Microsoft.Insights/components', variables('applicationInsightsName_var'))).InstrumentationKey]"
+                    },
+                    {
+                      "name": "FUNCTIONS_EXTENSION_VERSION",
+                      "value": "~3"
+                    },
+                    {
+                      "name": "FUNCTIONS_WORKER_RUNTIME",
+                      "value": "powershell"
+                    },
+                    {
+                      "name": "AzureWebJobsStorage",
+                      "value": "[format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1};', variables('storageAccountName_var'), listkeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName_var')), '2021-04-01').keys[0].value)]"
+                    },
+                    {
+                      "name": "AzureWebJobsDashboard",
+                      "value": "[format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1};', variables('storageAccountName_var'), listkeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName_var')), '2021-04-01').keys[0].value)]"
+                    },
+                    {
+                      "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
+                      "value": "[format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1};', variables('storageAccountName_var'), listkeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName_var')), '2021-04-01').keys[0].value)]"
+                    },
+                    {
+                      "name": "INBOUND_NSG_RULE_NAME",
+                      "value": "inbound-test-rule"
+                    },
+                    {
+                      "name": "OUTBOUND_NSG_RULE_NAME",
+                      "value": "outbound-test-rule"
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Insights/components', variables('applicationInsightsName_var'))]",
+                "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanName_var'))]",
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName_var'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Web/sites/sourcecontrols",
+              "apiVersion": "2020-12-01",
+              "name": "[format('{0}/{1}', variables('functionAppName_var'), 'web')]",
+              "properties": {
+                "repoUrl": "[parameters('repoURL')]",
+                "branch": "[parameters('branch')]",
+                "isManualIntegration": true
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', variables('functionAppName_var'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.EventGrid/systemTopics",
+              "apiVersion": "2020-04-01-preview",
+              "name": "[parameters('systemTopicName')]",
+              "location": "global",
+              "tags": {},
+              "properties": {
+                "source": "[subscription().id]",
+                "topicType": "Microsoft.Resources.Subscriptions"
+              }
+            },
+            {
+              "type": "Microsoft.EventGrid/systemTopics/eventSubscriptions",
+              "apiVersion": "2021-06-01-preview",
+              "name": "[format('{0}/{1}', parameters('systemTopicName'), 'my-event-subscription')]",
+              "properties": {
+                "destination": {
+                  "properties": {
+                    "resourceId": "[format('{0}/functions/EventGridTrigger1', resourceId('Microsoft.Web/sites', parameters('appName')))]",
+                    "maxEventsPerBatch": 1,
+                    "preferredBatchSizeInKilobytes": 64
+                  },
+                  "endpointType": "AzureFunction"
+                },
+                "filter": {
+                  "includedEventTypes": [
+                    "Microsoft.Resources.ResourceWriteSuccess",
+                    "Microsoft.Resources.ResourceDeleteSuccess"
+                  ],
+                  "enableAdvancedFilteringOnArrays": true,
+                  "advancedFilters": [
+                    {
+                      "values": [
+                        "Microsoft.Network/networkSecurityGroups/"
+                      ],
+                      "operatorType": "StringContains",
+                      "key": "data.operationName"
+                    }
+                  ]
+                },
+                "labels": [],
+                "eventDeliverySchema": "EventGridSchema",
+                "retryPolicy": {
+                  "maxDeliveryAttempts": 30,
+                  "eventTimeToLiveInMinutes": 1440
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/sites/sourcecontrols', variables('functionAppName_var'), 'web')]",
+                "[resourceId('Microsoft.EventGrid/systemTopics', parameters('systemTopicName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "functionAppUrl": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Web/sites', variables('functionAppName_var'))).defaultHostName]"
+            },
+            "functionAppPrincipalId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Web/sites', variables('functionAppName_var')), '2020-12-01', 'full').identity.principalId]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', parameters('rgName'))]"
+      ]
+    }
+  ]
+}
