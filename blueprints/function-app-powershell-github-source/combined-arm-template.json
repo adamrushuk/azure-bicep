@@ -42,14 +42,16 @@
       "metadata": {
         "description": "Location for all resources."
       }
+    },
+    "systemTopicName": {
+      "defaultValue": "mySystemTopic",
+      "type": "String"
     }
   },
   "variables": {
     "functionAppName": "[parameters('appName')]",
     "hostingPlanName": "[concat(parameters('appName'), '-plan')]",
-    "storageAccountName": "[concat(uniquestring(resourceGroup().id), 'functions')]",
-    "systemTopicName": "systemtopic",
-    "eventSubscriptionName": "eventsubscription"
+    "storageAccountName": "[concat(uniquestring(resourceGroup().id), 'functions')]"
   },
   "resources": [
     {
@@ -154,24 +156,25 @@
     },
     {
       "type": "Microsoft.EventGrid/systemTopics",
-      "apiVersion": "2020-04-01-preview",
-      "name": "[variables('systemTopicName')]",
+      "apiVersion": "2021-06-01-preview",
+      "name": "[parameters('systemTopicName')]",
       "location": "global",
-          "properties": {
-              "source": "/subscriptions/2569a91a-7470-41af-bc1f-6481effc4db4",
-              "topicType": "Microsoft.Resources.Subscriptions"
-          }
+      "properties": {
+        "source": "[subscription().id]",
+        "topicType": "Microsoft.Resources.Subscriptions"
+      }
     },
     {
       "type": "Microsoft.EventGrid/systemTopics/eventSubscriptions",
-      "apiVersion": "2020-04-01-preview",
-      "name": "[concat(variables('systemTopicName'), variables('eventSubscriptionName'))]",
+      "apiVersion": "2021-06-01-preview",
+      "name": "[concat(parameters('systemTopicName'), '/my-event-subscription')]",
       "dependsOn": [
-        "[resourceId('Microsoft.EventGrid/systemTopics', variables('systemTopicName'))]"
+        "[resourceId('Microsoft.EventGrid/systemTopics', parameters('systemTopicName'))]"
       ],
       "properties": {
         "destination": {
           "properties": {
+            // use "resourceId('Microsoft.Web/sites', variables('applicationInsightsName'))"
             "resourceId": "[concat(reference(variables('functionAppName')).id, '/functions/EventGridTrigger1')]",
             "maxEventsPerBatch": 1,
             "preferredBatchSizeInKilobytes": 64
