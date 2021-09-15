@@ -7,6 +7,10 @@ targetScope = 'resourceGroup'
 @description('The name of the function app that you wish to create.')
 param appName string = 'eg-funcapp-${uniqueString(resourceGroup().id)}'
 
+@secure()
+@description('The URL and SAS token of the function app package/zip file.')
+param packageUrl string
+
 @description('The name of the Event Grid System Topic that you wish to create.')
 param systemTopicName string = 'mySystemTopic'
 
@@ -19,11 +23,11 @@ param systemTopicName string = 'mySystemTopic'
 ])
 param storageAccountType string = 'Standard_LRS'
 
-@description('The URL for the GitHub repository that contains the project to deploy.')
-param repoURL string = 'https://github.com/adamrushuk/azure-function-app'
+// @description('The URL for the GitHub repository that contains the project to deploy.')
+// param repoURL string = 'https://github.com/adamrushuk/azure-function-app'
 
-@description('The branch of the GitHub repository to use.')
-param branch string = 'main'
+// @description('The branch of the GitHub repository to use.')
+// param branch string = 'main'
 
 @description('Location for all resources.')
 param location string = resourceGroup().location
@@ -100,6 +104,10 @@ resource functionApp 'Microsoft.Web/sites@2020-12-01' = {
     siteConfig: {
       powerShellVersion: '~7'
       appSettings: [
+        // {
+        //   'name': 'WEBSITE_RUN_FROM_PACKAGE'
+        //   'value': packageUrl
+        // }
         {
           'name': 'APPINSIGHTS_INSTRUMENTATIONKEY'
           'value': functionAppInsights.properties.InstrumentationKey
@@ -138,27 +146,34 @@ resource functionApp 'Microsoft.Web/sites@2020-12-01' = {
   }
 }
 
-// TODO: Can we deploy to subscription scope so role assignments work here?
-// resource roleAssignment 'Microsoft.Authorization/roleAssignments@2020-08-01-preview' = {
-//   name: guid(functionApp.name, subscription().subscriptionId)
-//   scope: subscription()
+resource msdeploy 'Microsoft.Web/sites/extensions@2021-01-15' = {
+  parent: functionApp
+  name: 'MSDeploy'
+  properties: {
+    packageUri: packageUrl
+    // appOffline: true
+  }
+}
+
+// https://docs.microsoft.com/en-us/azure/templates/microsoft.web/sites/sourcecontrols?tabs=bicep
+// resource functionAppSourcecontrol 'Microsoft.Web/sites/sourcecontrols@2020-12-01' = {
+//   parent: functionApp
+//   name: 'web'
 //   properties: {
-//     principalId: functionApp.identity.principalId
-//     // contributor RBAC role
-//     roleDefinitionId: '/providers/microsoft.authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c'
+//     repoUrl: repoURL
+//     branch: branch
+//     isManualIntegration: true
 //   }
 // }
 
-// https://docs.microsoft.com/en-us/azure/templates/microsoft.web/sites/sourcecontrols?tabs=bicep
-resource functionAppSourcecontrol 'Microsoft.Web/sites/sourcecontrols@2020-12-01' = {
-  parent: functionApp
-  name: 'web'
-  properties: {
-    repoUrl: repoURL
-    branch: branch
-    isManualIntegration: true
-  }
-}
+// https://docs.microsoft.com/en-us/azure/templates/microsoft.web/sourcecontrols?tabs=bicep#sourcecontrolproperties-object
+// ! tenant-level scope so cant define here?
+// resource functionAppSourcecontrolAuth 'Microsoft.Web/sourcecontrols@2020-12-01' = {
+//   name: 'GitHub'
+//   properties: {
+//     token: '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'
+//   }
+// }
 
 // https://docs.microsoft.com/en-gb/azure/templates/microsoft.eventgrid/systemtopics?tabs=bicep
 resource systemTopic 'Microsoft.EventGrid/systemTopics@2020-04-01-preview' = {
@@ -208,7 +223,7 @@ resource systemTopicEventSubscription 'Microsoft.EventGrid/systemTopics/eventSub
     }
   }
   dependsOn: [
-    functionAppSourcecontrol
+    msdeploy
   ]
 }
 
